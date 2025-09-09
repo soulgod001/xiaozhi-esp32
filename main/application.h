@@ -84,6 +84,7 @@ private:
     TaskHandle_t check_new_version_task_handle_ = nullptr;
 
     void OnWakeWordDetected();
+    void OnWakeWordDetected(const std::string& wake_word_invoke);
     void CheckNewVersion(Ota& ota);
     void CheckAssetsVersion();
     void ShowActivationCode(const std::string& code, const std::string& message);
