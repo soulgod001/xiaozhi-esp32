@@ -578,3 +578,54 @@ choice I2S_TYPE_TAIJIPI_S3
 endchoice
 
 endmenu
+
+menu "Home Assistant"
+config MQTT_HOST
+    string "MQTT Host"
+    default "192.168.1.1"
+    help
+        MQTT服务地址
+
+config MQTT_PORT
+    int "MQTT Port"
+    default 1883
+    help
+        MQTT服务端口
+
+config MQTT_CLIENT_ID
+    string "MQTT Client Id"
+    default "xiaozhi_esp32_test"
+    help
+        连接至MQTT的客户端id，需要唯一
+
+config MQTT_USERNAME
+    string "MQTT Username"
+    default ""
+    help
+        MQTT连接用户名
+
+config MQTT_PASSWORD
+    string "MQTT Password"
+    default ""
+    help
+        MQTT连接密码
+
+config HA_DEVICE_NAME
+    string "Home Assistant Device Name"
+    default "xiaozhi_esp32_test"
+    help
+        显示在Home Assistant中的设备名称
+
+config HA_MODEL
+    string "Home Assistant Device Model"
+    default "xiaozhi"
+    help
+        显示在Home Assistant中的设备型号
+
+config HA_MANUFACTURER
+    string "Home Assistant Device Manufacturer"
+    default "lingyutech"
+    help
+        显示在Home Assistant中的制造商
+        
+endmenu

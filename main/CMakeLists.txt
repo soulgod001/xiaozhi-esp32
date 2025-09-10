@@ -62,6 +62,7 @@ set(SOURCES "audio/audio_codec.cc"
             "device_state_event.cc"
             "assets.cc"
             "main.cc"
+            "home_assistant_manager.cc"
             )
 
 set(INCLUDE_DIRS "." "display" "audio" "protocols")

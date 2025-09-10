@@ -1,5 +1,5 @@
 # 本项目为虾哥小智项目的延伸项目，本项目通过MQTT接入HomeAssistant
-HA相关配置内容在/main/homeassistant_config.h中
+HA相关配置内容在menu的Home Assistant下
 
 # An MCP-based Chatbot | 一个基于 MCP 的聊天机器人
 

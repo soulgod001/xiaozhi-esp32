@@ -17,7 +17,7 @@
 #include <arpa/inet.h>
 #include <font_awesome.h>
 
-#include <homeassistant_config.h>
+#include <home_assistant_manager.h>
 #include <HaBridge.h>
 #include <MQTTRemote.h>
 #include <nlohmann/json.hpp>
@@ -77,40 +77,6 @@ Application::~Application() {
     }
     vEventGroupDelete(event_group_);
 }
-
-// Information about this device.
-// All these keys will be added to a "device" key in the Home Assistant configuration for each entity.
-// Only a flat layout structure is supported, no nesting.
-// We call the setupJsonForThisDevice() from the ardunio setup() function to populate the Json document.
-nlohmann::json _json_this_device_doc;
-void setupJsonForThisDevice() {
-  _json_this_device_doc["identifiers"] = std::string(ha_model)+"_"+std::string(mqtt_client_id);
-  _json_this_device_doc["name"] = ha_device_name;
-  _json_this_device_doc["sw_version"] = "1.0.0";
-  _json_this_device_doc["model"] = ha_model;
-  _json_this_device_doc["manufacturer"] = ha_manufacturer;
-}
-
-// Setup MQTT
-MQTTRemote _mqtt_remote(mqtt_client_id, mqtt_host, mqtt_port, mqtt_username, mqtt_password,
-                        {.rx_buffer_size = 256, .tx_buffer_size = 1024, .keep_alive_s = 10});
-
-// Create the Home Assistant bridge. This is shared across all entities.
-// We only have one per device/hardware. In our example, the name of our device is "livingroom".
-// See constructor of HaBridge for more documentation.
-HaBridge ha_bridge(_mqtt_remote, ha_device_name, _json_this_device_doc);
-
-HaEntityButton _ha_entity_button(ha_bridge, "wake up", "");
-HaEntityString _ha_device_status(ha_bridge, "状态", "device_status", {.with_attributes = true, .force_update = false});
-HaEntityString _ha_xiaozhi_user_message(ha_bridge, "user", "user_message", {.with_attributes = true, .force_update = false});
-HaEntityString _ha_xiaozhi_assistant_message(ha_bridge, "assistant", "assistant_message", {.with_attributes = true, .force_update = false});
-HaEntityText _ha_xiaozhi_wake_word_invoke(ha_bridge, "指令", "wake_word",
-                             {.min_text_length = 0,
-                              .max_text_length = 255,
-                              .with_state_topic = false,
-                              .is_password = false,
-                              .force_update = false,
-                              .retain = false});
 
 void Application::CheckAssetsVersion() {
     auto& board = Board::GetInstance();
@@ -469,26 +435,17 @@ void Application::Start() {
     Ota ota;
     CheckNewVersion(ota);
 
-    // 初始化设备信息
-    setupJsonForThisDevice();
-
-    // Start MQTT
-    _mqtt_remote.start([this](bool connected) {
-      // Publish Home Assistant Configuration once connected to MQTT.
-      _ha_entity_button.publishConfiguration();
-      _ha_device_status.publishConfiguration();
-      _ha_xiaozhi_user_message.publishConfiguration();
-      _ha_xiaozhi_assistant_message.publishConfiguration();
-      _ha_xiaozhi_wake_word_invoke.publishConfiguration();
-      _ha_entity_button.setOnPressed([this]() {
-        Schedule([this](){
-          OnWakeWordDetected("NONE");
-        });
+    // Conect to homeassistant by MQTT
+    auto& homeAssistantManager = HomeAssistantManager::GetInstance();
+    homeAssistantManager.Start();
+    homeAssistantManager.GetWakeUpButtonEntity().setOnPressed([this]() {
+      Schedule([this](){
+        OnWakeWordDetected("NONE");
       });
-      _ha_xiaozhi_wake_word_invoke.setOnText([this](std::string text) {
-        Schedule([this,text](){
-          OnWakeWordDetected(text);
-        });
+    });
+    homeAssistantManager.GetWakeWordInvokeEntity().setOnText([this](std::string text) {
+      Schedule([this,text](){
+        OnWakeWordDetected(text);
       });
     });
 
@@ -562,7 +519,7 @@ void Application::Start() {
             } else if (strcmp(state->valuestring, "sentence_start") == 0) {
                 auto text = cJSON_GetObjectItem(root, "text");
                 if (cJSON_IsString(text)) {
-                    _ha_xiaozhi_assistant_message.publishString(text->valuestring);
+                    HomeAssistantManager::GetInstance().GetAssistantMessageEntity().publishString(text->valuestring);
                     ESP_LOGI(TAG, "<< %s", text->valuestring);
                     Schedule([this, display, message = std::string(text->valuestring)]() {
                         display->SetChatMessage("assistant", message.c_str());
@@ -572,7 +529,7 @@ void Application::Start() {
         } else if (strcmp(type->valuestring, "stt") == 0) {
             auto text = cJSON_GetObjectItem(root, "text");
             if (cJSON_IsString(text)) {
-                _ha_xiaozhi_user_message.publishString(text->valuestring);
+                HomeAssistantManager::GetInstance().GetUserMessageEntity().publishString(text->valuestring);
                 ESP_LOGI(TAG, ">> %s", text->valuestring);
                 Schedule([this, display, message = std::string(text->valuestring)]() {
                     display->SetChatMessage("user", message.c_str());
@@ -785,7 +742,7 @@ void Application::SetDeviceState(DeviceState state) {
     auto previous_state = device_state_;
     device_state_ = state;
     ESP_LOGI(TAG, "STATE: %s", STATE_STRINGS[device_state_]);
-    _ha_device_status.publishString(STATE_STRINGS[device_state_],{
+    HomeAssistantManager::GetInstance().GetDeviceStatusEntity().publishString(STATE_STRINGS[device_state_],{
         {"type","状态变更"},
         {"value",STATE_STRINGS[device_state_]}});
     // Send the state change event
