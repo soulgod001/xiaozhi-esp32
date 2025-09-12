@@ -6,6 +6,8 @@
 #include <cstring>
 #include <driver/i2s_common.h>
 
+#include <home_assistant_manager.h>
+
 #define TAG "AudioCodec"
 
 AudioCodec::AudioCodec() {
@@ -50,7 +52,8 @@ void AudioCodec::Start() {
 void AudioCodec::SetOutputVolume(int volume) {
     output_volume_ = volume;
     ESP_LOGI(TAG, "Set output volume to %d", output_volume_);
-    
+    HomeAssistantManager::GetInstance().GetVolumeEntity().publishNumber(volume);
+
     Settings settings("audio", true);
     settings.SetInt("output_volume", output_volume_);
 }

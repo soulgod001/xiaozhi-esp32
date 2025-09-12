@@ -4,6 +4,8 @@
 #include <esp_log.h>
 #include <driver/ledc.h>
 
+#include <home_assistant_manager.h>
+
 #define TAG "Backlight"
 
 
@@ -65,6 +67,7 @@ void Backlight::SetBrightness(uint8_t brightness, bool permanent) {
         esp_timer_start_periodic(transition_timer_, 5 * 1000);
     }
     ESP_LOGI(TAG, "Set brightness to %d", brightness);
+    HomeAssistantManager::GetInstance().GetBrightnessEntity().publishNumber(brightness);
 }
 
 void Backlight::OnTransitionTimer() {

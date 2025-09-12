@@ -9,6 +9,7 @@
 #include <entities/HaEntityButton.h>
 #include <entities/HaEntityString.h>
 #include <entities/HaEntityText.h>
+#include <entities/HaEntityNumber.h>
 
 class HomeAssistantManager {
 public:
@@ -25,6 +26,8 @@ public:
     HaEntityString& GetUserMessageEntity();
     HaEntityString& GetAssistantMessageEntity();
     HaEntityText& GetWakeWordInvokeEntity();
+    HaEntityNumber& GetBrightnessEntity();
+    HaEntityNumber& GetVolumeEntity();
 
 private:
     HomeAssistantManager();

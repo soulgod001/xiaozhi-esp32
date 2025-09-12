@@ -698,7 +698,7 @@ void Application::OnWakeWordDetected(const std::string& wake_word_invoke) {
         }
         // Set the chat state to wake word detected
         if(wake_word=="NONE"){
-
+            audio_service_.PlaySound(Lang::Sounds::OGG_POPUP);
         }else{
             protocol_->SendWakeWordDetected(wake_word);
         }

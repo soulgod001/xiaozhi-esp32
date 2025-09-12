@@ -61,7 +61,20 @@ bool CustomWakeWord::Initialize(AudioCodec* codec, srmodel_list_t* models_list) 
     multinet_model_data_ = multinet_->create(mn_name_, 3000);  // 3 秒超时
     multinet_->set_det_threshold(multinet_model_data_, CONFIG_CUSTOM_WAKE_WORD_THRESHOLD / 100.0f);
     esp_mn_commands_clear();
-    esp_mn_commands_add(1, CONFIG_CUSTOM_WAKE_WORD);
+    const char *ptr = CONFIG_CUSTOM_WAKE_WORD;
+    while (*ptr) {
+        const char *end = ptr;
+        while (*end && *end != ',') end++; // 查找逗号或字符串结尾
+        if (end > ptr) { // 避免空唤醒词
+            char wake_word[128]; // 假设唤醒词最大长度
+            int len = end - ptr;
+            if (len > 127) len = 127; // 防止溢出
+            strncpy(wake_word, ptr, len);
+            wake_word[len] = '\0';
+            esp_mn_commands_add(1, wake_word);
+        }
+        ptr = (*end) ? end + 1 : end; // 移动到下一个词或结尾
+    }
     esp_mn_commands_update();
     
     multinet_->print_active_speech_commands(multinet_model_data_);

@@ -1,6 +1,7 @@
 #include <home_assistant_manager.h>
 #include <esp_log.h>
 #include <application.h>
+#include <board.h>
 
 #define TAG "HomeAssistantManager"
 
@@ -32,6 +33,20 @@ HaEntityText _ha_xiaozhi_wake_word_invoke(ha_bridge, "指令", "wake_word",
                                            .is_password = false,
                                            .force_update = false,
                                            .retain = false});
+HaEntityNumber _ha_brightness(ha_bridge, "亮度", "brightness",
+                                 {.min_value = 0,
+                                  .max_value = 100,
+                                  .unit = "",
+                                  .device_class = "",
+                                  .force_update = false,
+                                  .retain = false});
+HaEntityNumber _ha_volume(ha_bridge, "音量", "volume",
+                                 {.min_value = 0,
+                                  .max_value = 100,
+                                  .unit = "",
+                                  .device_class = "",
+                                  .force_update = false,
+                                  .retain = false});
 
 HomeAssistantManager::HomeAssistantManager()
 {
@@ -42,8 +57,11 @@ HomeAssistantManager::~HomeAssistantManager()
 }
 void HomeAssistantManager::Start()
 {
+    auto& board = Board::GetInstance();
+    auto backlight = board.GetBacklight();
+    auto codec = board.GetAudioCodec();
     // Start MQTT
-    _mqtt_remote.start([](bool connected)
+    _mqtt_remote.start([codec,backlight](bool connected)
                        {
                            // Publish Home Assistant Configuration once connected to MQTT.
                            _ha_entity_button.publishConfiguration();
@@ -51,7 +69,11 @@ void HomeAssistantManager::Start()
                            _ha_xiaozhi_user_message.publishConfiguration();
                            _ha_xiaozhi_assistant_message.publishConfiguration();
                            _ha_xiaozhi_wake_word_invoke.publishConfiguration();
+                           _ha_brightness.publishConfiguration();
+                           _ha_volume.publishConfiguration();
 
+                           _ha_brightness.publishNumber(backlight->brightness());
+                            _ha_volume.publishNumber(codec->output_volume());
                            //   ha_entity_button.setOnPressed([this]() {
                            //     Schedule([this](){
                            //       OnWakeWordDetected("NONE");
@@ -63,6 +85,13 @@ void HomeAssistantManager::Start()
                            //     });
                            //   });
                        });
+    
+    HomeAssistantManager::GetInstance().GetBrightnessEntity().setOnNumber([backlight](float number){
+        backlight->SetBrightness(number,true);
+    });
+    HomeAssistantManager::GetInstance().GetVolumeEntity().setOnNumber([codec](float number){
+        codec->SetOutputVolume(number);
+    });
 }
 
 HaEntityButton &HomeAssistantManager::GetWakeUpButtonEntity()
@@ -88,6 +117,16 @@ HaEntityString &HomeAssistantManager::GetAssistantMessageEntity()
 HaEntityText &HomeAssistantManager::GetWakeWordInvokeEntity()
 {
     return _ha_xiaozhi_wake_word_invoke;
+}
+
+HaEntityNumber &HomeAssistantManager::GetBrightnessEntity()
+{
+    return _ha_brightness;
+}
+
+HaEntityNumber &HomeAssistantManager::GetVolumeEntity()
+{
+    return _ha_volume;
 }
 
 void HomeAssistantManager::setupJsonForThisDevice()
